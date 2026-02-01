@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FPS Battle Royale Prototype</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 300px;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .hud-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #health-bar-container {
+            width: 200px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid white;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-right: 10px;
+        }
+
+        #health-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff3333, #ff6600);
+            transition: width 0.2s;
+        }
+
+        #ammo-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+
+        #game-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        #message-area {
+            position: absolute;
+            top: 30%;
+            width: 100%;
+            text-align: center;
+            color: #ffcc00;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px black;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            pointer-events: none;
+            /* Initially none, enabled when shown */
+        }
+
+        #restart-btn {
+            padding: 15px 30px;
+            font-size: 24px;
+            background: #ffcc00;
+            border: none;
+            border-radius: 8px;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: none;
+            /* Hidden by default */
+        }
+
+        #restart-btn:hover {
+            background: #ffdb4d;
+            transform: scale(1.05);
+        }
+
+        /* Mobile Controls */
+        .mobile-control {
+            pointer-events: auto;
+            position: absolute;
+        }
+
+        #joystick-zone {
+            bottom: 50px;
+            left: 50px;
+            width: 150px;
+            height: 150px;
+        }
+
+        #shoot-btn {
+            bottom: 60px;
+            right: 40px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 0, 0, 0.5);
+            border-radius: 50%;
+            border: 2px solid white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        #jump-btn {
+            bottom: 160px;
+            right: 40px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 255, 0.5);
+            border-radius: 50%;
+            border: 2px solid white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        #interact-btn {
+            bottom: 160px;
+            right: 120px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 0, 0.5);
+            border-radius: 50%;
+            border: 2px solid white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            display: none;
+            /* Only show when needed */
+        }
+
+        /* Desktop Instructions */
+        #pc-instructions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: right;
+            font-size: 14px;
+        }
+
+        #damage-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: red;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+        }
+
+        @media (min-width: 1024px) {
+            .mobile-control {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            #pc-instructions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container"></div>
+
+    <div id="ui-layer">
+        <div id="damage-overlay"></div>
+        <div id="crosshair"></div>
+        <div id="message-area">
+            <div id="game-msg-text"></div>
+            <button id="restart-btn" onclick="location.reload()">MAIN LAGI</button>
+        </div>
+
+        <div id="game-info">
+            ALIVE: <span id="alive-count">5</span>
+        </div>
+
+        <div id="hud">
+            <div class="hud-row">
+                <div id="health-bar-container">
+                    <div id="health-bar-fill"></div>
+                </div>
+                <div id="health-text">100 HP</div>
+            </div>
+            <div class="hud-row">
+                <div id="ammo-display">Ammo: 30</div>
+            </div>
+        </div>
+
+        <div id="pc-instructions">
+            WASD - Move<br>
+            SPACE - Jump / Parachute<br>
+            L-CLICK - Shoot<br>
+            F - Interact<br>
+            ESC - Unlock Cursor
+        </div>
+
+        <!-- Mobile Controls -->
+        <div id="joystick-zone" class="mobile-control"></div>
+        <div id="shoot-btn" class="mobile-control">SHOOT</div>
+        <div id="jump-btn" class="mobile-control">JUMP</div>
+        <div id="interact-btn" class="mobile-control">PICK</div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js",
+            "nipplejs": "https://esm.sh/nipplejs@0.10.1"
+        }
+    }
+    </script>
+    <script type="module" src="./main.js"></script>
+</body>
+
+</html>
